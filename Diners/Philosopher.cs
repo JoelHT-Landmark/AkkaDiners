@@ -12,6 +12,7 @@
         private static readonly Counter dinersEating = Metric.Counter("DinersEating", Unit.Items);
         private static readonly Counter dinersWaiting = Metric.Counter("DinersWaiting", Unit.Items);
         private static readonly Counter dinersMeditating = Metric.Counter("DinersMeditating", Unit.Items);
+        private static readonly Histogram dinerForks = Metric.Histogram("DinerForks", Unit.Items);
 
         public enum PhilosopherState
         {
@@ -45,16 +46,26 @@
                 this.OwnsRightFork = true;
             }
 
-            if ((!this.OwnsLeftFork || !this.OwnsRightFork) && 
-                (this.random.Next(1) == 1))
+            if (!this.OwnsLeftFork || !this.OwnsRightFork)
             {
-                this.DropFork(this.LeftFork);
-                this.DropFork(this.RightFork);
+                // randomly drop held forks
+                if (this.random.Next(1) == 1)
+                {
+                    this.DropFork(this.LeftFork);
+                    this.DropFork(this.RightFork);
+
+                    dinerForks.Update(0, this.Self.Name());
+                }
+                else
+                {
+                    dinerForks.Update(1, this.Self.Name());
+                }
 
                 this.StartWaiting();
                 return;
             }
 
+            dinerForks.Update(2, this.Self.Name());
             this.StartEating();
         }
 
