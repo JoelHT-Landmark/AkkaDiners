@@ -3,10 +3,15 @@
     using System;
 
     using Akka.Actor;
+    using Metrics;
 
     public class Philosopher : ReceiveActor
     {
         private Random random = new Random();
+
+        private static readonly Counter dinersEating = Metric.Counter("DinersEating", Unit.Items);
+        private static readonly Counter dinersWaiting = Metric.Counter("DinersWaiting", Unit.Items);
+        private static readonly Counter dinersMeditating = Metric.Counter("DinersMeditating", Unit.Items);
 
         public enum PhilosopherState
         {
@@ -61,8 +66,12 @@
             Console.ResetColor();
 
             this.State = PhilosopherState.Eating;
+            dinersEating.Increment();
 
-            Wait.For(new TimeSpan(0, 0, period)).Then(() => this.Self.Tell(new StopEatingOrder()));            
+            Wait.For(new TimeSpan(0, 0, period)).Then(() => {
+                dinersEating.Decrement();
+                this.Self.Tell(new StopEatingOrder());
+            });            
         }
 
         private void StopEating()
@@ -82,12 +91,16 @@
             var period = this.random.Next(30);
 
             this.State = PhilosopherState.Meditating;
+            dinersMeditating.Increment();
 
             Console.ForegroundColor = ConsoleColor.DarkBlue;
             Console.WriteLine("{0} starts meditating for {1}s...", this.Self.Name(), period);
             Console.ResetColor();
             
-            Wait.For(new TimeSpan(0, 0, period)).Then(() => this.Self.Tell(new BeginEatingOrder()));            
+            Wait.For(new TimeSpan(0, 0, period)).Then(() => {
+                dinersMeditating.Decrement();
+                this.Self.Tell(new BeginEatingOrder());
+                });            
         }
 
         private void StartWaiting()
@@ -95,12 +108,17 @@
             var period = this.random.Next(30);
 
             this.State = PhilosopherState.Waiting;
+            dinersWaiting.Increment();
 
             Console.ForegroundColor = ConsoleColor.DarkRed;
             Console.WriteLine("{0} waits for {1}s...", this.Self.Name(), period);
             Console.ResetColor();
 
-            Wait.For(new TimeSpan(0, 0, period)).Then(() => this.Self.Tell(new BeginEatingOrder()));            
+            Wait.For(new TimeSpan(0, 0, period)).Then(() =>
+            {
+                dinersWaiting.Decrement();
+                this.Self.Tell(new BeginEatingOrder());
+            });            
         }
 
         private void DropFork(ActorRef fork)
@@ -152,6 +170,7 @@
             if (this.OwnsLeftFork && this.OwnsRightFork)
             {
                 this.StartEating();
+                return;
             }
 
             if (!this.OwnsLeftFork)
