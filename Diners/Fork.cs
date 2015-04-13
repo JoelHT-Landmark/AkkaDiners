@@ -3,9 +3,13 @@
     using System;
 
     using Akka.Actor;
+    using Metrics;
 
     public class Fork : ReceiveActor
     {
+        private static readonly Meter forkPickupMeter = Metric.Meter("ForkPickups", Unit.Events);
+        private static readonly Meter dinerPickupMeter = Metric.Meter("DinerPickups", Unit.Events);
+
         public Fork()
         {
             Receive<ForkPickupRequest>(r => this.HandlePickupRequest(r));
@@ -41,6 +45,8 @@
             }
 
             Console.WriteLine("{0} picks up {1}", philosopher.Name(), this.Self.Name());
+            forkPickupMeter.Mark(this.Self.Name());
+            dinerPickupMeter.Mark(philosopher.Name());
 
             this.Philosopher = request.Philosopher;
             philosopher.Tell(new ForkPickupRequestAcceptedEvent(this.Self));
