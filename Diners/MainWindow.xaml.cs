@@ -19,7 +19,7 @@
             this.StartButton.Click += StartDining;
 
             outputter = new TextBoxOutputter(TestBox);
-            Console.SetOut(outputter);            
+            Console.SetOut(outputter);
         }
 
         private void StartDining(object sender, RoutedEventArgs e)

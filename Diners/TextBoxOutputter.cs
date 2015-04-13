@@ -20,6 +20,7 @@
             textBox.Dispatcher.BeginInvoke(new Action(() =>
             {
                 textBox.AppendText(value.ToString());
+                textBox.ScrollToEnd();
             }));
         }
 
