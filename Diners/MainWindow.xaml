@@ -1,0 +1,9 @@
+﻿<Window x:Class="Diners.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow" Height="350" Width="525">
+    <Grid>
+        <TextBox Margin="4,4,4,48" x:Name="TestBox"/>        
+        <Button Height="40" VerticalAlignment="Bottom" Margin="4" x:Name="StartButton">Go dine!</Button>
+    </Grid>
+</Window>
