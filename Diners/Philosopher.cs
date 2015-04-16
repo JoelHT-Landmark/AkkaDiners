@@ -56,13 +56,15 @@
 
             if (this.LeftFork == fork)
             {
-                Console.WriteLine("{0} has {1} in his left hand", this.Self.Name(), fork.Name());
+                Console.WriteLine("{0} now has a fork in his left hand", this.Self.Name());
                 this.OwnsLeftFork = true;
+                Log.Information("{philosopher} owns {fork} as his {handedness} fork", this.Self.Name(), fork.Name(), "Left");
             }
             else if(this.RightFork == fork)
             {
-                Console.WriteLine("{0} has {1} in his right hand", this.Self.Name(), fork.Name());
+                Console.WriteLine("{0} now has a fork in his right hand", this.Self.Name());
                 this.OwnsRightFork = true;
+                Log.Information("{philosopher} owns {fork} as his {handedness} fork", this.Self.Name(), fork.Name(), "Right");
             }
 
             if (!this.OwnsLeftFork || !this.OwnsRightFork)
@@ -70,6 +72,8 @@
                 // randomly drop held forks
                 if (this.random.Next(1) == 1)
                 {
+                    Console.WriteLine("Oops! Clumsy {0} has randomly dropped both his forks!", this.Self.Name());
+
                     this.DropFork(this.LeftFork);
                     this.DropFork(this.RightFork);
 
@@ -104,7 +108,10 @@
 
             Wait.For(new TimeSpan(0, 0, period)).Then(() => {
                 dinersEating.Decrement();
-                this.Self.Tell(new StopEatingOrder());
+
+                var order = new StopEatingOrder();
+                Log.Information("Sending {order} to {philosopher}", order, this.Self.Name());
+                this.Self.Tell(order);
             });
 
             Log.Verbose("Leaving Philosopher.StartEating()");
@@ -141,7 +148,9 @@
             
             Wait.For(new TimeSpan(0, 0, period)).Then(() => {
                 dinersMeditating.Decrement();
-                this.Self.Tell(new BeginEatingOrder());
+                var order = new BeginEatingOrder();
+                Log.Information("Sending {order} to {philosopher}", order, this.Self.Name());
+                this.Self.Tell(order);
                 });
 
             Log.Verbose("Leaving Philosopher.Meditate()");
@@ -163,7 +172,9 @@
             Wait.For(new TimeSpan(0, 0, period)).Then(() =>
             {
                 dinersWaiting.Decrement();
-                this.Self.Tell(new BeginEatingOrder());
+                var order = new BeginEatingOrder();
+                Log.Information("Sending {order} to {philosopher}", order, this.Self.Name());
+                this.Self.Tell(order);
             });
 
             Log.Verbose("Leaving Philosopher.StartWaiting()");
@@ -175,16 +186,22 @@
 
             if (this.LeftFork == fork)
             {
-                //Console.WriteLine("{0} doesn't have  {1} in his left hand", this.Self.Name(), fork.Name());
                 this.OwnsLeftFork = false;
+
+                Console.WriteLine("{0} drops his left fork", this.Self.Name());
+                Log.Information("{philosopher} released {fork} as his {handedness} fork", this.Self.Name(), fork.Name(), "Left");
             }
             else if(this.RightFork == fork)
             {
-                //Console.WriteLine("{0} doesn't have {1} in his right hand", this.Self.Name(), fork.Name());
                 this.OwnsRightFork = false;
+
+                Console.WriteLine("{0} drops his right fork", this.Self.Name());
+                Log.Information("{philosopher} released {fork} as his {handedness} fork", this.Self.Name(), fork.Name(), "Right");
             }
 
-            fork.Tell(new ForkDropRequest(this.Self));
+            var request = new ForkDropRequest(this.Self);
+            Log.Information("Sending {request} to {fork} for {philosopher}", request, fork.Name(), this.Self.Name());
+            fork.Tell(request);
 
             Log.Verbose("Leaving Philosopher.DropFork()");
         }
@@ -194,7 +211,9 @@
             Log.Verbose("Entering Philosopher.AssignLeftFork()");
 
             this.LeftFork = leftFork;
+
             Console.WriteLine("{0} is using {1} as his left fork", this.Self.Name(), leftFork.Name());
+            Log.Information("{philosopher} assigned {fork} as his {handedness} fork", this.Self.Name(), this.LeftFork.Name(), "Left");
 
             Log.Verbose("Leaving Philosopher.AssignLeftFork()");
         }
@@ -204,7 +223,9 @@
             Log.Verbose("Entering Philosopher.AssignRightFork()");
 
             this.RightFork = rightFork;
+
             Console.WriteLine("{0} is using {1} as his right fork", this.Self.Name(), rightFork.Name());
+            Log.Information("{philosopher} assigned {fork} as his {handedness} fork", this.Self.Name(), this.RightFork.Name(), "Right");
 
             Log.Verbose("Leaving Philosopher.AssignRightFork()");
         }
@@ -218,7 +239,7 @@
             // How can we eat without any forks?
             if ((this.LeftFork == null) || (this.RightFork == null))
             {
-                Console.WriteLine("{0} is confused - which forks should he use?", this.Self.Name());
+                Console.WriteLine("{0} is confused - he has no forks.", this.Self.Name());
                 this.StartWaiting();
                 return;
             }
@@ -226,7 +247,7 @@
             // we're already eating
             if (this.State == PhilosopherState.Eating)
             {
-                Console.WriteLine("{0} is still eating...", this.Self.Name());
+                Console.WriteLine("{0} continues eating...", this.Self.Name());
                 return;
             }
 
@@ -240,12 +261,16 @@
             // otherwise try and get any missing forks and wait.
             if (!this.OwnsLeftFork)
             {
-                this.LeftFork.Tell(new ForkPickupRequest(this.Self));                
+                var request = new ForkPickupRequest(this.Self);
+                Log.Information("Sending {request} to {fork} for {philosopher}", request, this.LeftFork.Name(), this.Self.Name());
+                this.LeftFork.Tell(request);                
             }
 
             if (!this.OwnsRightFork)
             {
-                this.RightFork.Tell(new ForkPickupRequest(this.Self));                
+                var request = new ForkPickupRequest(this.Self);
+                Log.Information("Sending {request} to {fork} for {philosopher}", request, this.RightFork.Name(), this.Self.Name());
+                this.RightFork.Tell(request);
             }
 
             this.StartWaiting();
