@@ -1,9 +1,15 @@
 ﻿<Window x:Class="Diners.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow" Height="350" Width="525">
-    <Grid>
-        <TextBox Margin="4,4,4,48" x:Name="TestBox"/>        
-        <Button Height="40" VerticalAlignment="Bottom" Margin="4" x:Name="StartButton">Go dine!</Button>
+        Title="Dining Philosophers" Height="600" Width="800">
+    <Grid Margin="2">
+        <ToolBar HorizontalAlignment="Stretch" Height="40" VerticalAlignment="Top" Margin="8,8,8,0">
+            <Button Height="32" x:Name="StartButton" FontWeight="Bold">Go dine!</Button>
+            <Separator />
+            <Label Content="Logging level" VerticalAlignment="Center" FontWeight="Bold" />
+            <Slider x:Name="LoggingLevelSlider" Orientation="Horizontal" Width="100" VerticalAlignment="Center" Maximum="5" Minimum="0" Value="3" IsDirectionReversed="True" />
+            <Label x:Name="LevelName" Content="Information" VerticalAlignment="Center" />
+        </ToolBar>
+        <TextBox Margin="8,56,8,8" x:Name="TestBox"/>
     </Grid>
 </Window>
