@@ -22,7 +22,7 @@
 
             if (this.Philosopher == philosopher)
             {
-                Console.WriteLine("{0} drops {1}", philosopher.Name(), this.Self.Name());
+                Console.WriteLine("{0} drops a fork", philosopher.Name(), this.Self.Name());
                 this.Philosopher = null;
             }
         }
@@ -33,18 +33,17 @@
 
             if (philosopher == this.Philosopher)
             {
-                Console.WriteLine("{0} is already holding {1}", philosopher.Name(), this.Self.Name());
                 return;
             }
 
             if (this.Philosopher != null)
             {
-                Console.WriteLine("{0} tries to pickup {1} - but {2} is holding it already", philosopher.Name(), this.Self.Name(), this.Philosopher.Name());
+                Console.WriteLine("{0} tries to pickup a fork - but {1} is holding it already", philosopher.Name(), this.Philosopher.Name());
                 philosopher.Tell(new ForkPickupRequestRejectedEvent(this.Self));
                 return;
             }
 
-            Console.WriteLine("{0} picks up {1}", philosopher.Name(), this.Self.Name());
+            Console.WriteLine("{0} picks up a fork", philosopher.Name());
             forkPickupMeter.Mark(this.Self.Name());
             dinerPickupMeter.Mark(philosopher.Name());
 
