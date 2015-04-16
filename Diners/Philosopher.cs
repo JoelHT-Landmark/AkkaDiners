@@ -13,6 +13,7 @@
         private static readonly Counter dinersWaiting = Metric.Counter("DinersWaiting", Unit.Items);
         private static readonly Counter dinersMeditating = Metric.Counter("DinersMeditating", Unit.Items);
         private static readonly Histogram dinerForks = Metric.Histogram("DinerForks", Unit.Items);
+        private static readonly Timer dinerTimer = Metric.Timer("DinerActions", Unit.Events);
 
         public enum PhilosopherState
         {
@@ -164,26 +165,29 @@
         {
             Console.WriteLine("{0} is thinking about eating.", this.Self.Name());
 
-            // Are we already eating?
+            // How can we eat without any forks?
             if ((this.LeftFork == null) || (this.RightFork == null))
             {
                 Console.WriteLine("{0} is confused - which forks should he use?", this.Self.Name());
+                this.StartWaiting();
                 return;
             }
 
+            // we're already eating
             if (this.State == PhilosopherState.Eating)
             {
                 Console.WriteLine("{0} is still eating...", this.Self.Name());
                 return;
             }
 
-            // do we have both forks already?
+            // do we have both forks? let's go!
             if (this.OwnsLeftFork && this.OwnsRightFork)
             {
                 this.StartEating();
                 return;
             }
 
+            // otherwise try and get any missing forks and wait.
             if (!this.OwnsLeftFork)
             {
                 this.LeftFork.Tell(new ForkPickupRequest(this.Self));                
