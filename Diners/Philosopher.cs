@@ -4,6 +4,7 @@
 
     using Akka.Actor;
     using Metrics;
+    using Serilog;
 
     public class Philosopher : ReceiveActor
     {
@@ -25,17 +26,34 @@
 
         public Philosopher()
         {
+            Log.Verbose("Entering Philosopher.cTor()");
+
+            Log.Information(
+                "Configuring {philosopher} to receive {commands}.", 
+                this.Self.Name(), 
+                new[] { typeof(BeginEatingOrder), typeof(StopEatingOrder), typeof(AssignLeftForkOrder), typeof(AssignRightForkOrder) });
+
             Receive<BeginEatingOrder>(o => BeginEating());
             Receive<StopEatingOrder>(o => this.StopEating());
 
             Receive<AssignLeftForkOrder>(o => AssignLeftFork(o.LeftFork));
             Receive<AssignRightForkOrder>(o => AssignRightFork(o.RightFork));
+
+            Log.Information(
+                "Configuring {philosopher} to receive {events}.", 
+                this.Self.Name(), 
+                new[] { typeof(ForkPickupRequestRejectedEvent), typeof(ForkPickupRequestAcceptedEvent) });
+
             Receive<ForkPickupRequestRejectedEvent>(o => this.DropFork(o.Fork));
             Receive<ForkPickupRequestAcceptedEvent>(o => this.PickUpFork(o.Fork));
+
+            Log.Verbose("Leaving Philosopher.cTor()");
         }
 
         private void PickUpFork(ActorRef fork)
         {
+            Log.Verbose("Entering Philosopher.PickUpFork()");
+
             if (this.LeftFork == fork)
             {
                 Console.WriteLine("{0} has {1} in his left hand", this.Self.Name(), fork.Name());
@@ -68,10 +86,14 @@
 
             dinerForks.Update(2, this.Self.Name());
             this.StartEating();
+
+            Log.Verbose("Leaving Philosopher.PickUpFork()");
         }
 
         private void StartEating()
         {
+            Log.Verbose("Entering Philosopher.StartEating()");
+
             var period = random.Next(30);
             Console.ForegroundColor = ConsoleColor.DarkGreen;
             Console.WriteLine("{0} starts eating for {1}s...", this.Self.Name(), period);
@@ -83,11 +105,15 @@
             Wait.For(new TimeSpan(0, 0, period)).Then(() => {
                 dinersEating.Decrement();
                 this.Self.Tell(new StopEatingOrder());
-            });            
+            });
+
+            Log.Verbose("Leaving Philosopher.StartEating()");
         }
 
         private void StopEating()
         {
+            Log.Verbose("Entering Philosopher.StopEating()");
+
             Console.ForegroundColor = ConsoleColor.DarkGreen;
             Console.WriteLine("{0} stops eating...", this.Self.Name());
             Console.ResetColor();
@@ -96,10 +122,14 @@
             this.DropFork(this.RightFork);
 
             this.Meditate();
+
+            Log.Verbose("Leaving Philosopher.StopEating()");
         }
 
         private void Meditate()
         {
+            Log.Verbose("Entering Philosopher.Meditate()");
+
             var period = this.random.Next(30);
 
             this.State = PhilosopherState.Meditating;
@@ -112,11 +142,15 @@
             Wait.For(new TimeSpan(0, 0, period)).Then(() => {
                 dinersMeditating.Decrement();
                 this.Self.Tell(new BeginEatingOrder());
-                });            
+                });
+
+            Log.Verbose("Leaving Philosopher.Meditate()");
         }
 
         private void StartWaiting()
         {
+            Log.Verbose("Entering Philosopher.StartWaiting()");
+
             var period = this.random.Next(30);
 
             this.State = PhilosopherState.Waiting;
@@ -130,11 +164,15 @@
             {
                 dinersWaiting.Decrement();
                 this.Self.Tell(new BeginEatingOrder());
-            });            
+            });
+
+            Log.Verbose("Leaving Philosopher.StartWaiting()");
         }
 
         private void DropFork(ActorRef fork)
         {
+            Log.Verbose("Entering Philosopher.DropFork()");
+
             if (this.LeftFork == fork)
             {
                 //Console.WriteLine("{0} doesn't have  {1} in his left hand", this.Self.Name(), fork.Name());
@@ -147,22 +185,34 @@
             }
 
             fork.Tell(new ForkDropRequest(this.Self));
+
+            Log.Verbose("Leaving Philosopher.DropFork()");
         }
 
         private void AssignLeftFork(ActorRef leftFork)
         {
+            Log.Verbose("Entering Philosopher.AssignLeftFork()");
+
             this.LeftFork = leftFork;
             Console.WriteLine("{0} is using {1} as his left fork", this.Self.Name(), leftFork.Name());
+
+            Log.Verbose("Leaving Philosopher.AssignLeftFork()");
         }
 
         private void AssignRightFork(ActorRef rightFork)
         {
+            Log.Verbose("Entering Philosopher.AssignRightFork()");
+
             this.RightFork = rightFork;
             Console.WriteLine("{0} is using {1} as his right fork", this.Self.Name(), rightFork.Name());
+
+            Log.Verbose("Leaving Philosopher.AssignRightFork()");
         }
 
         private void BeginEating()
         {
+            Log.Verbose("Entering Philosopher.BeginEating()");
+
             Console.WriteLine("{0} is thinking about eating.", this.Self.Name());
 
             // How can we eat without any forks?
@@ -199,6 +249,8 @@
             }
 
             this.StartWaiting();
+
+            Log.Verbose("Leaving Philosopher.StartEating()");
         }
 
         public PhilosopherState State { get; private set; }
