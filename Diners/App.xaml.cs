@@ -1,9 +1,12 @@
 ﻿namespace Diners
 {
+    using Diners.Logging;
     using Metrics;
     using Serilog;
     using Serilog.Core;
     using Serilog.Events;
+    using System;
+    using System.Net;
     using System.Windows;
 
     /// <summary>
@@ -15,11 +18,13 @@
 
         public App()
         {
-            Metric.Config.WithHttpEndpoint("http://localhost:1234/");
+            Metric.Config.WithHttpEndpoint("http://localhost:1234/")
+                .WithReporting(c => c.WithSerilogReports(TimeSpan.FromSeconds(30)));
+
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.ControlledBy(this.logLevelSwitch)
                 .WriteTo.ColoredConsole()
-                .WriteTo.RollingFile("Diners-{Date}.txt")
+                .WriteTo.RollingFile(@"c:\logs\AkkaDiners\Diners-{Date}.txt")
                 .CreateLogger();
         }
 
