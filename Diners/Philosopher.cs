@@ -5,6 +5,8 @@
     using Akka.Actor;
     using Metrics;
     using Serilog;
+    using System.Diagnostics;
+    using System.Collections.Generic;
 
     public class Philosopher : ReceiveActor
     {
@@ -15,6 +17,9 @@
         private static readonly Counter dinersMeditating = Metric.Counter("DinersMeditating", Unit.Items);
         private static readonly Histogram dinerForks = Metric.Histogram("DinerForks", Unit.Items);
         private static readonly Timer dinerTimer = Metric.Timer("DinerActions", Unit.Events);
+
+        private readonly Dictionary<PhilosopherState, Stopwatch> stopwatches = new Dictionary<PhilosopherState, Stopwatch>();
+        private readonly object padlock = new object();
 
         public enum PhilosopherState
         {
@@ -54,39 +59,58 @@
         {
             Log.Verbose("Entering Philosopher.PickUpFork()");
 
+            var logContext = Log.ForContext("philosopher", this.Self.Name())
+                                .ForContext("fork", fork.Name());
+
             if (this.LeftFork == fork)
             {
                 Console.WriteLine("{0} now has a fork in his left hand", this.Self.Name());
                 this.OwnsLeftFork = true;
-                Log.Information("{philosopher} owns {fork} as his {handedness} fork", this.Self.Name(), fork.Name(), "Left");
+                logContext.Information("{philosopher} owns {fork} as his {handedness} fork", this.Self.Name(), fork.Name(), "Left");
             }
             else if(this.RightFork == fork)
             {
                 Console.WriteLine("{0} now has a fork in his right hand", this.Self.Name());
                 this.OwnsRightFork = true;
-                Log.Information("{philosopher} owns {fork} as his {handedness} fork", this.Self.Name(), fork.Name(), "Right");
+                logContext.Information("{philosopher} owns {fork} as his {handedness} fork", this.Self.Name(), fork.Name(), "Right");
+            }
+
+            // randomly drop held forks
+            if (this.random.Next(100) == 95)
+            {
+                logContext.Debug("{philosopher} is about to drop any forks held.", this.Self.Name());
+                Console.WriteLine("Oops! Clumsy {0} has randomly dropped his forks!", this.Self.Name());
+
+                if (this.OwnsLeftFork)
+                {
+                    this.DropFork(this.LeftFork);
+                }
+
+                if (this.OwnsRightFork)
+                {
+                    this.DropFork(this.RightFork);
+                }
+
+                dinerForks.Update(0, this.Self.Name());
+                this.StartWaiting();
+
+                Log.Verbose("Leaving Philosopher.PickUpFork()");
+                return;
             }
 
             if (!this.OwnsLeftFork || !this.OwnsRightFork)
             {
-                // randomly drop held forks
-                if (this.random.Next(1) == 1)
-                {
-                    Console.WriteLine("Oops! Clumsy {0} has randomly dropped both his forks!", this.Self.Name());
+                logContext.Debug("{philosopher} has only one fork.");
 
-                    this.DropFork(this.LeftFork);
-                    this.DropFork(this.RightFork);
-
-                    dinerForks.Update(0, this.Self.Name());
-                }
-                else
-                {
-                    dinerForks.Update(1, this.Self.Name());
-                }
+                dinerForks.Update(1, this.Self.Name());
 
                 this.StartWaiting();
+
+                Log.Verbose("Leaving Philosopher.PickUpFork()");
                 return;
             }
+
+            logContext.Debug("{philsopher} is about to start eating - both forks held.", this.Self.Name());
 
             dinerForks.Update(2, this.Self.Name());
             this.StartEating();
@@ -103,7 +127,8 @@
             Console.WriteLine("{0} starts eating for {1}s...", this.Self.Name(), period);
             Console.ResetColor();
 
-            this.State = PhilosopherState.Eating;
+            this.SetPhilosopherState(PhilosopherState.Eating);
+
             dinersEating.Increment();
 
             Wait.For(new TimeSpan(0, 0, period)).Then(() => {
@@ -139,8 +164,7 @@
 
             var period = this.random.Next(30);
 
-            this.State = PhilosopherState.Meditating;
-            dinersMeditating.Increment();
+            this.SetPhilosopherState(PhilosopherState.Meditating);
 
             Console.ForegroundColor = ConsoleColor.DarkBlue;
             Console.WriteLine("{0} starts meditating for {1}s...", this.Self.Name(), period);
@@ -162,7 +186,7 @@
 
             var period = this.random.Next(30);
 
-            this.State = PhilosopherState.Waiting;
+            this.SetPhilosopherState(PhilosopherState.Waiting);
             dinersWaiting.Increment();
 
             Console.ForegroundColor = ConsoleColor.DarkRed;
@@ -276,6 +300,60 @@
             this.StartWaiting();
 
             Log.Verbose("Leaving Philosopher.StartEating()");
+        }
+
+        private void SetPhilosopherState(PhilosopherState state)
+        {
+            Log.Verbose("Setting state for {philosopher} from {oldState} to {newState}", this.Self.Name(), this.State, state);
+
+            StopStopwatch(this.State);
+            this.State = state;
+            StartStopwatch(state);
+        }
+
+        private void StopStopwatch(PhilosopherState state)
+        {
+            var stopwatch = GetStopwatchForState(state);
+            if (stopwatch.IsRunning)
+            {
+                stopwatch.Stop();
+                Log.Information("{philosopher} was {state} for {duration}ms", this.Self.Name(), state, stopwatch.ElapsedMilliseconds);
+            }
+
+            Log.Verbose("Resetting {state} stopwatch for {philosopher}", state, this.Self.Name());
+            stopwatch.Reset();
+        }
+
+        private void StartStopwatch(PhilosopherState state)
+        {
+            var stopwatch = GetStopwatchForState(state);
+            if (stopwatch.IsRunning)
+            {
+                Log.Warning("{state} stopwatch for {philosopher} is already running.", state, this.Self.Name());
+                return;
+            }
+
+            Log.Verbose("Starting {state} stopwatch for {philosopher}", state, this.Self.Name());
+            stopwatch.Start();
+        }
+
+        private Stopwatch GetStopwatchForState(PhilosopherState state)
+        {
+            if (!stopwatches.ContainsKey(state))
+            {
+                lock (padlock)
+                {
+                    var newStopwatch = new Stopwatch();
+
+                    if (!stopwatches.ContainsKey(state))
+                    {
+                        this.stopwatches.Add(state, newStopwatch);
+                    }
+                }
+            }
+
+            var stopwatch = this.stopwatches[state];
+            return stopwatch;
         }
 
         public PhilosopherState State { get; private set; }
