@@ -38,7 +38,7 @@
 
             if (this.Philosopher != null)
             {
-                Console.WriteLine("{0} tries to pickup a fork - but {1} is holding it already", philosopher.Name(), this.Philosopher.Name());
+                Console.WriteLine("{0} tried to pickup a fork - but {1} was holding it already", philosopher.Name(), this.Philosopher.Name());
                 philosopher.Tell(new ForkPickupRequestRejectedEvent(this.Self));
                 return;
             }
