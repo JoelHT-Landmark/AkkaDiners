@@ -3,9 +3,14 @@
     using System;
 
     using Akka.Actor;
+    using Metrics;
+    using Serilog;
 
     public class Philosopher : ReceiveActor
     {
+        private static readonly Counter dinersEating = 
+            Metric.Counter("DinersEating", Unit.Items);
+
         private Random random = new Random();
 
         public enum PhilosopherState
@@ -74,6 +79,8 @@
             this.DropFork(this.LeftFork);
             this.DropFork(this.RightFork);
 
+            dinersEating.Decrement();
+
             this.Meditate();
         }
 
@@ -92,6 +99,9 @@
 
         private void StartWaiting()
         {
+
+            Log.Information("{philosopher} is starting waiting...", this.Self.Name());
+
             var period = this.random.Next(30);
 
             this.State = PhilosopherState.Waiting;
@@ -151,6 +161,8 @@
             // do we have both forks already?
             if (this.OwnsLeftFork && this.OwnsRightFork)
             {
+                dinersEating.Increment();
+
                 this.StartEating();
             }
 
