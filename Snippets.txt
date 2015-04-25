@@ -1,0 +1,59 @@
+Setup Metrics
+=============
+
+Metric.Config.WithHttpEndpoint("http://localhost:1234/")
+
+                .WithReporting(c => c.WithSerilogReports(TimeSpan.FromSeconds(30)));
+
+Basic Logging
+=============
+
+Log.Logger = new LoggerConfiguration()
+
+                .MinimumLevel.ControlledBy(this.logLevelSwitch)
+
+                .WriteTo.ColoredConsole()
+
+                .WriteTo.RollingFile(@"c:\logs\AkkaDiners\Diners-{Date}.txt")
+              .CreateLogger();
+
+
+Counter
+=======
+
+private static readonly Counter dinersEating = Metric.Counter("DinersEating", Unit.Items);
+
+dinersEating.Decrement();
+
+Gauge
+=====
+
+Metric.Gauge(“Random”, () => new Random().Next(), Unit.Items);
+
+Histogram
+=========
+
+private static readonly Histogram dinerForks = Metric.Histogram("DinerForks", Unit.Items);
+
+dinerForks.Update(0, this.Self.Name());
+
+Meter
+=====
+
+private static readonly Meter dinerEvents = Metric.Meter(“DinerEvents”, Unit.Requests, TimeUnit.Seconds);
+
+Timer
+=====
+
+private static readonly Timer dinerTimer = Metric.Timer("DinerActions", Unit.Events);
+
+using (dinerTimer.NewContext(this.Self.Name)) { … }
+
+Logging Contexts
+================
+
+var ctx = Log.ForContext<Philosopher>().ForContext(“PhilosopherName”, this.Self.Name());
+ctx.Information(“Hello context”);
+
+
+
