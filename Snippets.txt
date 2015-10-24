@@ -28,7 +28,7 @@ dinersEating.Decrement();
 Gauge
 =====
 
-Metric.Gauge(ìRandomî, () => new Random().Next(), Unit.Items);
+Metric.Gauge(‚ÄúRandom‚Äù, () => new Random().Next(), Unit.Items);
 
 Histogram
 =========
@@ -40,20 +40,24 @@ dinerForks.Update(0, this.Self.Name());
 Meter
 =====
 
-private static readonly Meter dinerEvents = Metric.Meter(ìDinerEventsî, Unit.Requests, TimeUnit.Seconds);
+private static readonly Meter dinerEvents = Metric.Meter(‚ÄúDinerEvents‚Äù, Unit.Requests, TimeUnit.Seconds);
 
 Timer
 =====
 
 private static readonly Timer dinerTimer = Metric.Timer("DinerActions", Unit.Events);
 
-using (dinerTimer.NewContext(this.Self.Name)) { Ö }
+using (dinerTimer.NewContext(this.Self.Name)) { ‚Ä¶ }
 
 Logging Contexts
 ================
 
-var ctx = Log.ForContext<Philosopher>().ForContext(ìPhilosopherNameî, this.Self.Name());
-ctx.Information(ìHello contextî);
+var ctx = Log.ForContext<Philosopher>().ForContext(‚ÄúPhilosopherName‚Äù, this.Self.Name());
+ctx.Information(‚ÄúHello context‚Äù);
 
 
 
+Splunk Searching
+================
+
+"[Information]" AND "was * for *ms"  | rex field=_raw "\"(?<philosopher>.*?)\" was (?<action>.*?) for (?<period>\d*?)ms" | timechart avg(period) by action
