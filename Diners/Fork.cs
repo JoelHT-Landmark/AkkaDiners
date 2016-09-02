@@ -4,6 +4,7 @@
 
     using Akka.Actor;
     using Metrics;
+    using Serilog;
 
     public class Fork : ReceiveActor
     {
@@ -22,7 +23,7 @@
 
             if (this.Philosopher == philosopher)
             {
-                Console.WriteLine("{0} drops a fork", philosopher.Name(), this.Self.Name());
+                Log.Information("{philosopher} drops a fork", philosopher.Name(), this.Self.Name());
                 this.Philosopher = null;
             }
         }
@@ -38,12 +39,12 @@
 
             if (this.Philosopher != null)
             {
-                Console.WriteLine("{0} tried to pickup a fork - but {1} was holding it already", philosopher.Name(), this.Philosopher.Name());
+                Log.Information("{philosopher} tried to pickup a fork - but {competitor} was holding it already", philosopher.Name(), this.Philosopher.Name());
                 philosopher.Tell(new ForkPickupRequestRejectedEvent(this.Self));
                 return;
             }
 
-            Console.WriteLine("{0} picks up a fork", philosopher.Name());
+            Log.Information("{philosopher} picks up a fork", philosopher.Name());
             forkPickupMeter.Mark(this.Self.Name());
             dinerPickupMeter.Mark(philosopher.Name());
 

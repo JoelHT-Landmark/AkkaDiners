@@ -62,9 +62,9 @@ namespace Diners
 
             this.philosophers.Last().Tell(new AssignLeftForkOrder(firstFork));
 
-            Log.Information("Configured system for {philosopherCount} philosophers and {formCount} forks.", this.philosophers.Count, forkId+1);
+            Log.Debug("Configured system for {philosopherCount} philosophers and {formCount} forks.", this.philosophers.Count, forkId+1);
 
-            Console.WriteLine("Ready to feed {0} hungry philosophers...", this.philosophers.Count);
+            Log.Information("Ready to feed {philosopherCount} hungry philosophers...", this.philosophers.Count);
 
             Log.Verbose("Leaving DinersSystem cTor");
         }
@@ -77,7 +77,7 @@ namespace Diners
             foreach (var philosopher in this.philosophers)
             {
                 var order = new BeginEatingOrder();
-                Log.Information("Sending {order} to {philosopher}", order, philosopher.Name());
+                Log.Debug("Sending{order} to {philosopher}", order, philosopher.Name());
                 philosopher.Tell(order);
             }
 

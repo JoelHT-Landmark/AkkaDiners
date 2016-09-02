@@ -3,6 +3,7 @@
     using Serilog.Events;
     using System;
     using System.Windows;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -19,6 +20,7 @@
         {
             InitializeComponent();
 
+            this.SetupDinersSystem();
             this.StartButton.Click += StartDining;
             this.LoggingLevelSlider.ValueChanged += LoggingLevelChanged;
 
@@ -26,6 +28,12 @@
             Console.SetOut(outputter);
         }
 
+        private void SetupDinersSystem()
+        {
+            Task.Factory.StartNew(() => {
+                this.system = new DinersSystem();
+            });
+        }
         private void LoggingLevelChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             var levelValue = Convert.ToInt32(e.NewValue);
@@ -38,7 +46,6 @@
 
         private void StartDining(object sender, RoutedEventArgs e)
         {
-            this.system = new DinersSystem();
             this.system.StartDining();
         }
 
